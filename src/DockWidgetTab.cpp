@@ -317,7 +317,7 @@ bool DockWidgetTabPrivate::startFloating(eDragState DraggingState)
     ADS_PRINT("startFloating");
 	DragState = DraggingState;
 	IFloatingWidget* FloatingWidget = nullptr;
-	bool CreateContainer = (DraggingFloatingWidget != DraggingState);
+	bool CreateContainer = (DraggingFloatingWidget != DraggingState) || true;
 
 	// If section widget has multiple tabs, we take only one tab
 	// If it has only one single tab, we can move the complete

@@ -38,7 +38,7 @@
 #include <QDebug>
 #include <QAbstractButton>
 #include <QElapsedTimer>
-#include <QTime>
+#include <QTimer>
 
 #include "DockContainerWidget.h"
 #include "DockAreaWidget.h"
@@ -1065,20 +1065,30 @@ void CFloatingDockContainer::startFloating(const QPoint &DragStartMousePos,
 	}
 	show();
 	
-	auto drag = QDrag(this);
-	auto mimeData = new QMimeData();
-	auto window = windowHandle();
-	auto serialize = [](const auto &object) {
-		QByteArray data;
-		QDataStream dataStream(&data, QIODevice::WriteOnly);
-		dataStream << object;
-		return data;
-	};
-	mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-window"), serialize(reinterpret_cast<qintptr>(window)));
-	mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-position"), serialize(DragStartMousePos));
-	drag.setMimeData(mimeData);
 	if (qApp->platformName() == QLatin1StringView("wayland")) {
-		drag.exec();
+		// FIXME maybe factor this out into something like "startWaylandDrag" ?
+		// Needs to be after becasue callers set up their state after calling startFloating
+		QTimer::singleShot(0, this, [this, DragStartMousePos, MouseEventHandler] {
+			auto drag = new QDrag(this);
+			auto mimeData = new QMimeData();
+			auto window = windowHandle();
+			auto serialize = [](const auto &object) {
+				QByteArray data;
+				QDataStream dataStream(&data, QIODevice::WriteOnly);
+				dataStream << object;
+				return data;
+			};
+			mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-window"), serialize(reinterpret_cast<qintptr>(window)));
+			mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-position"), serialize(DragStartMousePos));
+			mimeData->setData(QLatin1StringView("application/x-qads-drag"), {});
+			drag->setMimeData(mimeData);
+			int result = drag->exec();
+			if (result == Qt::IgnoreAction) {
+				d->handleEscapeKey();
+			} else {
+				finishDragging();
+			}
+		});
 	}
 
 	

@@ -531,8 +531,9 @@ CDockManager::CDockManager(QWidget *parent) :
 		d->FocusController = new CDockFocusController(this);
 	}
 
-
-	window()->installEventFilter(this);
+	if (!QGuiApplication::platformName().startsWith(QLatin1String("wayland"))) {
+		window()->installEventFilter(this);
+	}
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
     connect(qApp, &QApplication::focusWindowChanged, this, [this](QWindow* focusWindow)

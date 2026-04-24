@@ -38,6 +38,10 @@ endif()
 
 project(QtADS LANGUAGES CXX VERSION ${VERSION_SHORT})
 
+find_package(ECM REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}  ${ECM_MODULE_PATH})
+include(ECMEnableSanitizers)
+
 option(BUILD_STATIC "Build the static library" OFF)
 option(BUILD_EXAMPLES "Build the examples" ON)
 
