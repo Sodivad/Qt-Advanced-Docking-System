@@ -373,7 +373,7 @@ void CFloatingDragPreview::startFloating(const QPoint &DragStartMousePos,
 	d->DragStartMousePosition = DragStartMousePos;
 	moveFloating();
 	show();
-	auto drag = QDrag(this);
+	auto drag = new QDrag(this);
 	auto mimeData = new QMimeData();
 	auto window = windowHandle();
 	auto serialize = [](const auto &object) {
@@ -384,11 +384,17 @@ void CFloatingDragPreview::startFloating(const QPoint &DragStartMousePos,
 	};
 	mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-window"), serialize(reinterpret_cast<qintptr>(window)));
 	mimeData->setData(QLatin1StringView("application/x-qt-mainwindowdrag-position"), serialize(DragStartMousePos));
-	drag.setMimeData(mimeData);
+	drag->setMimeData(mimeData);
 	if (qApp->platformName() == QLatin1StringView("wayland")) {
-		drag.exec();
-	}
-
+		Qt::DropAction result = drag->exec();
+		if (result == Qt::IgnoreAction) {
+			qDebug() << "dragging cancelled";
+			draggingCanceled();
+		} else {
+			qDebug() << "finish dragging";
+			finishDragging();
+		}
+	};
 }
 
 
