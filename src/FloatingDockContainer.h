@@ -108,6 +108,7 @@ private:
 	FloatingDockContainerPrivate* d; ///< private data (pimpl)
 	friend struct FloatingDockContainerPrivate;
 	friend class CDockManager;
+	friend class CDockContainerWidget;
 	friend struct DockManagerPrivate;
 	friend class CDockAreaTabBar;
 	friend struct DockWidgetTabPrivate;

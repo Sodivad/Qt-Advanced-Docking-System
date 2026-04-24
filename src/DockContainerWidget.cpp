@@ -58,6 +58,7 @@
 #include "AutoHideDockContainer.h"
 #include "AutoHideSideBar.h"
 #include "AutoHideTab.h"
+#include "FloatingDockContainer_p.h"
 
 #include <functional>
 #include <iostream>
@@ -1425,6 +1426,7 @@ CDockContainerWidget::CDockContainerWidget(CDockManager* DockManager, QWidget *p
 		createRootSplitter();
 		createSideTabBarWidgets();
 	}
+	setAcceptDrops(true);
 }
 
 
@@ -1531,6 +1533,45 @@ bool CDockContainerWidget::event(QEvent *e)
 	else if (e->type() == QEvent::Show && !d->zOrderIndex)
 	{
 		d->zOrderIndex = ++zOrderCounter;
+	}
+	else if (e->type() == QEvent::DragEnter) {
+		qDebug() << "drag enter";
+		for (const auto widget : d->DockManager->floatingWidgets()) {
+			if (widget->d->isState(eDragState::DraggingFloatingWidget)) {
+				auto dragEvent = static_cast<QDragEnterEvent *>(e);
+				dragEvent->acceptProposedAction();
+				widget->d->updateDropOverlays(widget->mapToGlobal(dragEvent->position().toPoint()));
+				break;
+			}
+		}
+		e->accept();
+		return true;
+
+	}
+	else if (e->type() == QEvent::Drop) {
+		qDebug() << "drop event";
+		e->accept();
+		return true;
+
+	}
+	else if (e->type() == QEvent::DragMove) {
+		qDebug() << "drag move event";
+		for (const auto widget : d->DockManager->floatingWidgets()) {
+			if (widget->d->isState(eDragState::DraggingFloatingWidget)) {
+				auto dragEvent = static_cast<QDragMoveEvent *>(e);
+				dragEvent->acceptProposedAction();
+				widget->d->updateDropOverlays(widget->mapToGlobal(dragEvent->position().toPoint()));
+				break;
+			}
+		}
+		e->accept();
+		return true;
+	}
+	else if(e->type() == QEvent::DragLeave) {
+		qDebug() << "drag leave event";
+		e->accept();
+		return true;
+
 	}
 
 	return Result;

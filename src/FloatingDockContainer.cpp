@@ -27,6 +27,7 @@
 //                                   INCLUDES
 //============================================================================
 #include "FloatingDockContainer.h"
+#include "FloatingDockContainer_p.h"
 
 #include <iostream>
 
@@ -361,130 +362,6 @@ static const char* windowsMessageString(int MessageId)
 
 
 static unsigned int zOrderCounterFloating = 0;
-/**
- * Private data class of CFloatingDockContainer class (pimpl)
- */
-struct FloatingDockContainerPrivate
-{
-	CFloatingDockContainer *_this;
-	CDockContainerWidget *DockContainer;
-	unsigned int zOrderIndex = ++zOrderCounterFloating;
-	QPointer<CDockManager> DockManager;
-	eDragState DraggingState = DraggingInactive;
-	QPoint DragStartMousePosition;
-	CDockContainerWidget *DropContainer = nullptr;
-	CDockAreaWidget *SingleDockArea = nullptr;
-	QPoint DragStartPos;
-	bool Hiding = false;
-	bool AutoHideChildren = true;
-	bool HideContentOnNextHide = false;
-#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
-    QWidget* MouseEventHandler = nullptr;
-    CFloatingWidgetTitleBar* TitleBar = nullptr;
-	bool IsResizing = false;
-    bool MousePressed = false;
-#endif
-
-	/**
-	 * Private data constructor
-	 */
-	FloatingDockContainerPrivate(CFloatingDockContainer *_public);
-
-	void titleMouseReleaseEvent();
-	void updateDropOverlays(const QPoint &GlobalPos);
-
-	/**
-	 * Returns true if the given config flag is set
-	 */
-	static bool testConfigFlag(CDockManager::eConfigFlag Flag)
-	{
-		return CDockManager::testConfigFlag(Flag);
-	}
-
-	/**
-	 * Tests is a certain state is active
-	 */
-	bool isState(eDragState StateId) const
-	{
-		return StateId == DraggingState;
-	}
-
-	/**
-	 * Sets the dragging state and posts a FloatingWidgetDragStartEvent
-	 * if dragging starts
-	 */
-	void setState(eDragState StateId)
-	{
-		if (DraggingState == StateId)
-		{
-			return;
-		}
-
-		DraggingState = StateId;
-        if (DraggingFloatingWidget == DraggingState)
-        {
-            qApp->postEvent(_this, new QEvent((QEvent::Type)internal::FloatingWidgetDragStartEvent));
-        }
-	}
-
-	void setWindowTitle(const QString &Text)
-	{
-#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
-		if (TitleBar)
-		{
-			TitleBar->setTitle(Text);
-		}
-#endif
-		_this->setWindowTitle(Text);
-	}
-
-	/**
-	 * Reflect the current dock widget title in the floating widget windowTitle()
-	 * depending on the CDockManager::FloatingContainerHasWidgetTitle flag
-	 */
-	void reflectCurrentWidget(CDockWidget* CurrentWidget)
-	{
-		// reflect CurrentWidget's title if configured to do so, otherwise display application name as window title
-		if (testConfigFlag(CDockManager::FloatingContainerHasWidgetTitle))
-		{
-			setWindowTitle(CurrentWidget->windowTitle());
-		}
-		else
-		{
-			setWindowTitle(floatingContainersTitle());
-		}
-
-		// reflect CurrentWidget's icon if configured to do so, otherwise display application icon as window icon
-		QIcon CurrentWidgetIcon = CurrentWidget->icon();
-		if (testConfigFlag(CDockManager::FloatingContainerHasWidgetIcon)
-				&& !CurrentWidgetIcon.isNull())
-		{
-			_this->setWindowIcon(CurrentWidget->icon());
-		}
-		else
-		{
-			_this->setWindowIcon(CurrentWidget->windowIcon());
-		}
-	}
-
-	/**
-	 * Handles escape key press when dragging around the floating widget
-	 */
-	void handleEscapeKey();
-
-	/**
-	 * Returns the title used by all FloatingContainer that does not
-	 * reflect the title of the current dock widget.
-	 *
-	 * If not title was set with CDockManager::setFloatingContainersTitle(),
-	 * it returns QGuiApplication::applicationDisplayName().
-	 */
-	static QString floatingContainersTitle()
-	{
-		return CDockManager::floatingContainersTitle();
-	}
-};
-// struct FloatingDockContainerPrivate
 
 //============================================================================
 FloatingDockContainerPrivate::FloatingDockContainerPrivate(
@@ -492,6 +369,77 @@ FloatingDockContainerPrivate::FloatingDockContainerPrivate(
 	_this(_public)
 {
 
+}
+
+bool FloatingDockContainerPrivate::testConfigFlag(CDockManager::eConfigFlag Flag)
+{
+	return CDockManager::testConfigFlag(Flag);
+}
+
+/**
+* Tests is a certain state is active
+*/
+bool FloatingDockContainerPrivate::isState(eDragState StateId) const
+{
+	return StateId == DraggingState;
+}
+
+/**
+* Sets the dragging state and posts a FloatingWidgetDragStartEvent
+* if dragging starts
+*/
+void FloatingDockContainerPrivate::setState(eDragState StateId)
+{
+	if (DraggingState == StateId)
+	{
+		return;
+	}
+
+	DraggingState = StateId;
+	if (DraggingFloatingWidget == DraggingState)
+	{
+		qApp->postEvent(_this, new QEvent((QEvent::Type)internal::FloatingWidgetDragStartEvent));
+	}
+}
+
+void FloatingDockContainerPrivate::setWindowTitle(const QString &Text)
+{
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
+	if (TitleBar)
+	{
+		TitleBar->setTitle(Text);
+	}
+#endif
+	_this->setWindowTitle(Text);
+}
+
+/**
+	* Reflect the current dock widget title in the floating widget windowTitle()
+	* depending on the CDockManager::FloatingContainerHasWidgetTitle flag
+	*/
+void FloatingDockContainerPrivate::reflectCurrentWidget(CDockWidget* CurrentWidget)
+{
+	// reflect CurrentWidget's title if configured to do so, otherwise display application name as window title
+	if (testConfigFlag(CDockManager::FloatingContainerHasWidgetTitle))
+	{
+		setWindowTitle(CurrentWidget->windowTitle());
+	}
+	else
+	{
+		setWindowTitle(floatingContainersTitle());
+	}
+
+	// reflect CurrentWidget's icon if configured to do so, otherwise display application icon as window icon
+	QIcon CurrentWidgetIcon = CurrentWidget->icon();
+	if (testConfigFlag(CDockManager::FloatingContainerHasWidgetIcon)
+			&& !CurrentWidgetIcon.isNull())
+	{
+		_this->setWindowIcon(CurrentWidget->icon());
+	}
+	else
+	{
+		_this->setWindowIcon(CurrentWidget->windowIcon());
+	}
 }
 
 //============================================================================
@@ -660,6 +608,7 @@ CFloatingDockContainer::CFloatingDockContainer(CDockManager *DockManager) :
 	tFloatingWidgetBase(DockManager),
 	d(new FloatingDockContainerPrivate(this))
 {
+	d->zOrderIndex = ++zOrderCounterFloating;
 	d->DockManager = DockManager;
 	d->DockContainer = new CDockContainerWidget(DockManager, this);
 	connect(d->DockContainer, SIGNAL(dockAreasAdded()), this,
